@@ -1,12 +1,12 @@
-import { cdk } from "projen";
-const project = new cdk.JsiiProject({
-  author: "AWS",
-  authorAddress: "aws-cdk-dev@amazon.com",
-  defaultReleaseBranch: "main",
-  name: "cdk-atmosphere-client",
+import { CdklabsJsiiProject } from 'cdklabs-projen-project-types';
+const project = new CdklabsJsiiProject({
+  author: 'AWS',
+  authorAddress: 'aws-cdk-dev@amazon.com',
+  defaultReleaseBranch: 'main',
+  name: '@cdklabs/cdk-atmosphere-client',
   projenrcTs: true,
   release: false,
-  repositoryUrl: "https://github.com/cdklabs/cdk-atmosphere-client.git",
+  repositoryUrl: 'https://github.com/cdklabs/cdk-atmosphere-client.git',
 
   // deps: [],                /* Runtime dependencies of this module. */
   // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
