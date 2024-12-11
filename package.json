@@ -67,6 +67,14 @@
   "version": "0.0.0",
   "jest": {
     "coverageProvider": "v8",
+    "coverageThreshold": {
+      "global": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 95
+      }
+    },
     "testMatch": [
       "<rootDir>/@(src|test)/**/*(*.)@(spec|test).ts?(x)",
       "<rootDir>/@(src|test)/**/__tests__/**/*.ts?(x)",
