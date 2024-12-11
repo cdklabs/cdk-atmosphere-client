@@ -18,7 +18,7 @@ const project = new CdklabsJsiiProject({
         functions: coverageThreshold,
         branches: coverageThreshold
       }
-    }
+    },
   }
 
   // deps: [],                /* Runtime dependencies of this module. */

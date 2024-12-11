@@ -104,7 +104,8 @@ export class AtmosphereClient {
         // retry if no environment is available yet.
         if (error.statusCode === 423) {
 
-          if (Date.now() - startTime >= timeoutMs) {
+          const elapsed = Date.now() - startTime;
+          if (elapsed >= timeoutMs) {
             throw new Error(`Failed to acquire environment within ${timeoutMinutes} minutes`);
           }
 
