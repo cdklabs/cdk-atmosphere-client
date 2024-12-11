@@ -16,10 +16,14 @@ const project = new CdklabsJsiiProject({
         statements: coverageThreshold,
         lines: coverageThreshold,
         functions: coverageThreshold,
-        branches: coverageThreshold
-      }
+        branches: coverageThreshold,
+      },
+      coveragePathIgnorePatterns: [
+        '<rootDir>/node_modules/',
+        '<rootDir>/test/',
+      ],
     },
-  }
+  },
 
   // deps: [],                /* Runtime dependencies of this module. */
   // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */

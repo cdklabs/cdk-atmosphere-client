@@ -1,7 +1,7 @@
-import * as http from 'http';
 import * as https from 'https';
 
 import { AtmosphereClient, EnvironmentAllocation } from '../src';
+import { MockHttps } from './https.mock';
 
 jest.mock('https');
 
@@ -22,56 +22,67 @@ describe('AtmosphereClient', () => {
       const response: EnvironmentAllocation = {
         allocationId: 'id',
         environment: {
-         account: 'account',
-         region: 'region',
-         credentials: {
-          accessKeyId: 'accessKeyId',
-          secretAccessKey: 'secretAccessKey',
-          sessionToken: 'sessionToken'
-         } 
-        }
-      }
-  
-      simulateResponses({ statusCode: 200, statusMessage: 'OK', data: Buffer.from(JSON.stringify(response))});
-  
+          account: 'account',
+          region: 'region',
+          credentials: {
+            accessKeyId: 'accessKeyId',
+            secretAccessKey: 'secretAccessKey',
+            sessionToken: 'sessionToken',
+          },
+        },
+      };
+
+      MockHttps.respond({ responses: [{ statusCode: 200, statusMessage: 'OK', data: Buffer.from(JSON.stringify(response)) }] });
+
       const client = new AtmosphereClient('endpoint');
       const data = await client.acquire();
-  
+
       expect(data).toEqual(response);
       expect(https.request).toHaveBeenCalledTimes(1);
-  
-    })
-  
+      expect(https.request).toHaveBeenCalledWith(
+        {
+          hostname: 'endpoint',
+          port: 443,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          path: '/allocations',
+          method: 'POST',
+        },
+        expect.any(Function),
+      );
+
+    });
+
     test('exponentially waits until an environment is available', async () => {
-  
+
       const allocation: EnvironmentAllocation = {
         allocationId: 'id',
         environment: {
-         account: 'account',
-         region: 'region',
-         credentials: {
-          accessKeyId: 'accessKeyId',
-          secretAccessKey: 'secretAccessKey',
-          sessionToken: 'sessionToken'
-         } 
-        }
-      }
-  
-      const originalSetTimeout = setTimeout;
-      jest.spyOn(global, 'setTimeout').mockImplementation((callback, _ms) => {
-        return originalSetTimeout(callback, 0);
+          account: 'account',
+          region: 'region',
+          credentials: {
+            accessKeyId: 'accessKeyId',
+            secretAccessKey: 'secretAccessKey',
+            sessionToken: 'sessionToken',
+          },
+        },
+      };
+
+      mockSetTimeout();
+
+      MockHttps.respond({
+        responses: [
+          { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') },
+          { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') },
+          { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') },
+          { statusCode: 200, statusMessage: 'Locked', data: Buffer.from(JSON.stringify(allocation)) },
+        ],
       });
 
-      simulateResponses(
-        { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}')},
-        { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}')},
-        { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}')},
-        { statusCode: 200, statusMessage: 'Locked', data: Buffer.from(JSON.stringify(allocation))},
-      );
-  
       const client = new AtmosphereClient('endpoint');
       const data = await client.acquire();
-  
+
       expect(data).toEqual(allocation);
       expect(https.request).toHaveBeenCalledTimes(4);
 
@@ -79,90 +90,136 @@ describe('AtmosphereClient', () => {
       expect(setTimeout).toHaveBeenNthCalledWith(1, expect.any(Function), 1000);
       expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), 2000);
       expect(setTimeout).toHaveBeenNthCalledWith(3, expect.any(Function), 4000);
-  
-    })
+
+    });
 
     test('times out if no environments are available', async () => {
-    
-      jest.useFakeTimers();
-      const originalSetTimeout = setTimeout;
-      jest.spyOn(global, 'setTimeout').mockImplementation((callback, ms) => {
-        const timeout = originalSetTimeout(callback, ms);
-        if (ms) {
-          jest.advanceTimersByTime(ms);
-        }
-        return timeout;
+
+      mockSetTimeout();
+
+      MockHttps.respond({
+        responses: [{ statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') }],
+        keepLastResponse: true,
       });
 
-      simulateResponses(
-        { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}')},
-        { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}')},
-        { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}')},
-      );
-  
       const client = new AtmosphereClient('endpoint');
+      const start = Date.now();
       await expect(client.acquire()).rejects.toThrow('Failed to acquire environment within 10 minutes');
-    
-    })
-    
-    test.each([{ statusCode: 400, statusMessage: 'BadRequest' }, { statusCode: 500, statusMessage: 'Internal Error' }])('throws on error status codes', async ({ statusCode, statusMessage }) => {
-  
-      const client = new AtmosphereClient('endpoint');
-  
-      simulateResponses({statusCode, statusMessage, data: Buffer.from('{"message":"Invalid Input"}')});
-      await expect(client.acquire()).rejects.toThrow(`${statusCode} (${statusMessage}): Invalid Input`);
-  
-    })
-  
-    test('defaults to an unknown error if service doesnt provide message on error', async () => {
-  
-      const client = new AtmosphereClient('endpoint');
-  
-      simulateResponses({ statusCode: 400, statusMessage: 'BadRequest', data: Buffer.from('{}')});
-      await expect(client.acquire()).rejects.toThrow(`400 (BadRequest): Unknown error`);
-  
+      const end = Date.now();
+
+      expect(end - start).toBeGreaterThanOrEqual(10 * 60 * 1000);
+
     });
-  
-  })
 
-});
+    test('waits maximum 1 minute between retries', async () => {
 
-interface MockResponse {
-  statusCode: number;
-  statusMessage: string;
-  data: Buffer;
-}
+      const setTimeout = mockSetTimeout();
 
-function simulateResponses(...responses: MockResponse[]) {
+      MockHttps.respond({
+        responses: [{ statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') }],
+        keepLastResponse: true,
+      });
 
-  const last = responses[responses.length - 1];
-  const request = https.request as jest.MockedFunction<any>;
-  request.mockImplementation((_options: http.RequestOptions, callback?: (res: http.IncomingMessage) => void) => {
+      const client = new AtmosphereClient('endpoint');
+      const start = Date.now();
+      await expect(client.acquire()).rejects.toThrow('Failed to acquire environment within 10 minutes');
+      const end = Date.now();
 
-    const mockResponse = responses.shift() ?? last;
-    if (!mockResponse) throw new Error('Unexpected invocation count');
+      expect(end - start).toBeGreaterThanOrEqual(10 * 60 * 1000);
+      expect(setTimeout).toHaveBeenCalledTimes(15);
+      expect(setTimeout).toHaveBeenNthCalledWith(14, expect.any(Function), 60 * 1000);
+      expect(setTimeout).toHaveBeenNthCalledWith(15, expect.any(Function), 60 * 1000);
 
-    const response = {
-      statusCode: mockResponse.statusCode,
-      statusMessage: mockResponse.statusMessage,
-      on: (event: string, listener: (...args: any[]) => void) => {
+    });
 
-        switch (event) {
-          case 'data':
-            listener(mockResponse.data);
-            break;
-          case 'end':
-            listener();
-            break;
-        }
-  
-        return response;
-  
-      },
-    };
+    test('respects timeout', async () => {
 
-    if (callback) callback(response as unknown as http.IncomingMessage);
+      mockSetTimeout();
+
+      MockHttps.respond({
+        responses: [{ statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') }],
+        keepLastResponse: true,
+      });
+
+      const client = new AtmosphereClient('endpoint');
+
+      const start = Date.now();
+      await expect(client.acquire({ timeoutMinutes: 20 })).rejects.toThrow('Failed to acquire environment within 20 minutes');
+      const end = Date.now();
+
+      expect(end - start).toBeGreaterThanOrEqual(20 * 60 * 1000);
+
+    });
+
+    test.each([{ statusCode: 400, statusMessage: 'BadRequest' }, { statusCode: 500, statusMessage: 'Internal Error' }])('throws on error status codes', async ({ statusCode, statusMessage }) => {
+
+      const client = new AtmosphereClient('endpoint');
+      MockHttps.respond({ responses: [{ statusCode, statusMessage, data: Buffer.from('{"message":"Invalid Input"}') }] });
+
+      await expect(client.acquire()).rejects.toThrow(`${statusCode} (${statusMessage}): Invalid Input`);
+
+    });
+
+    test('defaults to an unknown error if service doesnt provide message on error', async () => {
+
+      const client = new AtmosphereClient('endpoint');
+      MockHttps.respond({ responses: [{ statusCode: 400, statusMessage: 'BadRequest', data: Buffer.from('{}') }] });
+
+      await expect(client.acquire()).rejects.toThrow('400 (BadRequest): Unknown error');
+
+    });
+
+    test('throws if the unable to perform the request', async () => {
+
+      const client = new AtmosphereClient('endpoint');
+
+      MockHttps.error({ error: new Error('Unable to perform request') });
+
+      await expect(client.acquire()).rejects.toThrow('Unable to perform request');
+
+    });
 
   });
 
+  describe('release', () => {
+
+    test('makes a single request', async () => {
+
+      MockHttps.respond({ responses: [{ statusCode: 200, statusMessage: 'OK', data: Buffer.from('{}') }] });
+
+      const client = new AtmosphereClient('endpoint');
+
+      await client.release('id');
+      expect(https.request).toHaveBeenCalledTimes(1);
+      expect(https.request).toHaveBeenCalledWith(
+        {
+          hostname: 'endpoint',
+          port: 443,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          path: '/allocations/id',
+          method: 'DELETE',
+        },
+        expect.any(Function),
+      );
+
+    });
+
+  });
+});
+
+function mockSetTimeout() {
+
+  jest.useFakeTimers();
+  const spy = jest.spyOn(global, 'setTimeout');
+  spy.mockImplementation((callback, ms) => {
+    if (ms) {
+      // simulate the passage of time
+      jest.advanceTimersByTime(ms);
+    }
+    callback();
+    return {} as unknown as NodeJS.Timeout;
+  });
+  return spy;
 }

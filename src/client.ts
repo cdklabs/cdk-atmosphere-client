@@ -88,7 +88,7 @@ export class AtmosphereClient {
     const timeoutMs = 60 * timeoutMinutes * 1000;
 
     let retryDelay = 1000; // start with 1 second
-    const maxRetryDelay = 32000; // max 32 seconds
+    const maxRetryDelay = 60000; // max 1 minute
 
     const req: https.RequestOptions = {
       path: '/allocations',
