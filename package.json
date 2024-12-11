@@ -115,7 +115,8 @@
       "ts-jest": {
         "tsconfig": "tsconfig.dev.json"
       }
-    }
+    },
+    "randomize": true
   },
   "types": "lib/index.d.ts",
   "stability": "stable",

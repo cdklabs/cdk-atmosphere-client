@@ -1,4 +1,5 @@
 import { CdklabsJsiiProject } from 'cdklabs-projen-project-types';
+import { JsonPatch } from 'projen';
 
 const coverageThreshold = 95;
 
@@ -30,4 +31,7 @@ const project = new CdklabsJsiiProject({
   // devDeps: [],             /* Build dependencies for this module. */
   // packageName: undefined,  /* The "name" in package.json. */
 });
+
+project.package.file.patch(JsonPatch.add('/jest/randomize', true));
+
 project.synth();
