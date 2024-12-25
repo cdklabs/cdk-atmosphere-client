@@ -4,7 +4,7 @@ import * as https from 'https';
  * Credentials for a specific environment.
  *
  */
-export interface EnvironmentCredentials {
+export interface Credentials {
   /**
    * AccessKeyId
    */
@@ -36,27 +36,28 @@ export interface Environment {
    * Region.
    */
   readonly region: string;
-
-  /**
-   * Credentials.
-   */
-  readonly credentials: EnvironmentCredentials;
 }
 
 /**
  * An allocation of a single environment.
  */
-export interface EnvironmentAllocation {
+export interface Allocation {
 
   /**
    * The allocation id.
    */
-  readonly allocationId: string;
+  readonly id: string;
 
   /**
    * The allocated environment.
    */
   readonly environment: Environment;
+
+  /**
+   * Credentials.
+   */
+  readonly credentials: Credentials;
+
 }
 
 export interface AcquireOptions {
@@ -81,7 +82,7 @@ export class AtmosphereClient {
    * @returns allocation information.
    * @throws if an environment could not be acquired within the specified timeout.
    */
-  public async acquire(options: AcquireOptions = {}): Promise<EnvironmentAllocation> {
+  public async acquire(options: AcquireOptions = {}): Promise<Allocation> {
 
     const timeoutMinutes = options.timeoutMinutes ?? 10;
     const startTime = Date.now();

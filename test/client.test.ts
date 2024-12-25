@@ -1,6 +1,6 @@
 import * as https from 'https';
 
-import { AtmosphereClient, EnvironmentAllocation } from '../src';
+import { AtmosphereClient, Allocation } from '../src';
 import { MockHttps } from './https.mock';
 
 jest.mock('https');
@@ -19,16 +19,16 @@ describe('AtmosphereClient', () => {
 
     test('returns immediately if an environment is available', async () => {
 
-      const response: EnvironmentAllocation = {
-        allocationId: 'id',
+      const response: Allocation = {
+        id: 'id',
         environment: {
           account: 'account',
           region: 'region',
-          credentials: {
-            accessKeyId: 'accessKeyId',
-            secretAccessKey: 'secretAccessKey',
-            sessionToken: 'sessionToken',
-          },
+        },
+        credentials: {
+          accessKeyId: 'accessKeyId',
+          secretAccessKey: 'secretAccessKey',
+          sessionToken: 'sessionToken',
         },
       };
 
@@ -56,16 +56,16 @@ describe('AtmosphereClient', () => {
 
     test('exponentially waits until an environment is available', async () => {
 
-      const allocation: EnvironmentAllocation = {
-        allocationId: 'id',
+      const allocation: Allocation = {
+        id: 'id',
         environment: {
           account: 'account',
           region: 'region',
-          credentials: {
-            accessKeyId: 'accessKeyId',
-            secretAccessKey: 'secretAccessKey',
-            sessionToken: 'sessionToken',
-          },
+        },
+        credentials: {
+          accessKeyId: 'accessKeyId',
+          secretAccessKey: 'secretAccessKey',
+          sessionToken: 'sessionToken',
         },
       };
 

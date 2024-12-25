@@ -34,6 +34,122 @@ How many minutes to wait in case an environment is not immediately available.
 
 ---
 
+### Allocation <a name="Allocation" id="@cdklabs/cdk-atmosphere-client.Allocation"></a>
+
+An allocation of a single environment.
+
+#### Initializer <a name="Initializer" id="@cdklabs/cdk-atmosphere-client.Allocation.Initializer"></a>
+
+```typescript
+import { Allocation } from '@cdklabs/cdk-atmosphere-client'
+
+const allocation: Allocation = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.Allocation.property.credentials">credentials</a></code> | <code><a href="#@cdklabs/cdk-atmosphere-client.Credentials">Credentials</a></code> | Credentials. |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.Allocation.property.environment">environment</a></code> | <code><a href="#@cdklabs/cdk-atmosphere-client.Environment">Environment</a></code> | The allocated environment. |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.Allocation.property.id">id</a></code> | <code>string</code> | The allocation id. |
+
+---
+
+##### `credentials`<sup>Required</sup> <a name="credentials" id="@cdklabs/cdk-atmosphere-client.Allocation.property.credentials"></a>
+
+```typescript
+public readonly credentials: Credentials;
+```
+
+- *Type:* <a href="#@cdklabs/cdk-atmosphere-client.Credentials">Credentials</a>
+
+Credentials.
+
+---
+
+##### `environment`<sup>Required</sup> <a name="environment" id="@cdklabs/cdk-atmosphere-client.Allocation.property.environment"></a>
+
+```typescript
+public readonly environment: Environment;
+```
+
+- *Type:* <a href="#@cdklabs/cdk-atmosphere-client.Environment">Environment</a>
+
+The allocated environment.
+
+---
+
+##### `id`<sup>Required</sup> <a name="id" id="@cdklabs/cdk-atmosphere-client.Allocation.property.id"></a>
+
+```typescript
+public readonly id: string;
+```
+
+- *Type:* string
+
+The allocation id.
+
+---
+
+### Credentials <a name="Credentials" id="@cdklabs/cdk-atmosphere-client.Credentials"></a>
+
+Credentials for a specific environment.
+
+#### Initializer <a name="Initializer" id="@cdklabs/cdk-atmosphere-client.Credentials.Initializer"></a>
+
+```typescript
+import { Credentials } from '@cdklabs/cdk-atmosphere-client'
+
+const credentials: Credentials = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.Credentials.property.accessKeyId">accessKeyId</a></code> | <code>string</code> | AccessKeyId. |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.Credentials.property.secretAccessKey">secretAccessKey</a></code> | <code>string</code> | SecretAccessKey. |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.Credentials.property.sessionToken">sessionToken</a></code> | <code>string</code> | SessionToken. |
+
+---
+
+##### `accessKeyId`<sup>Required</sup> <a name="accessKeyId" id="@cdklabs/cdk-atmosphere-client.Credentials.property.accessKeyId"></a>
+
+```typescript
+public readonly accessKeyId: string;
+```
+
+- *Type:* string
+
+AccessKeyId.
+
+---
+
+##### `secretAccessKey`<sup>Required</sup> <a name="secretAccessKey" id="@cdklabs/cdk-atmosphere-client.Credentials.property.secretAccessKey"></a>
+
+```typescript
+public readonly secretAccessKey: string;
+```
+
+- *Type:* string
+
+SecretAccessKey.
+
+---
+
+##### `sessionToken`<sup>Required</sup> <a name="sessionToken" id="@cdklabs/cdk-atmosphere-client.Credentials.property.sessionToken"></a>
+
+```typescript
+public readonly sessionToken: string;
+```
+
+- *Type:* string
+
+SessionToken.
+
+---
+
 ### Environment <a name="Environment" id="@cdklabs/cdk-atmosphere-client.Environment"></a>
 
 Environment information.
@@ -51,7 +167,6 @@ const environment: Environment = { ... }
 | **Name** | **Type** | **Description** |
 | --- | --- | --- |
 | <code><a href="#@cdklabs/cdk-atmosphere-client.Environment.property.account">account</a></code> | <code>string</code> | Account ID. |
-| <code><a href="#@cdklabs/cdk-atmosphere-client.Environment.property.credentials">credentials</a></code> | <code><a href="#@cdklabs/cdk-atmosphere-client.EnvironmentCredentials">EnvironmentCredentials</a></code> | Credentials. |
 | <code><a href="#@cdklabs/cdk-atmosphere-client.Environment.property.region">region</a></code> | <code>string</code> | Region. |
 
 ---
@@ -68,18 +183,6 @@ Account ID.
 
 ---
 
-##### `credentials`<sup>Required</sup> <a name="credentials" id="@cdklabs/cdk-atmosphere-client.Environment.property.credentials"></a>
-
-```typescript
-public readonly credentials: EnvironmentCredentials;
-```
-
-- *Type:* <a href="#@cdklabs/cdk-atmosphere-client.EnvironmentCredentials">EnvironmentCredentials</a>
-
-Credentials.
-
----
-
 ##### `region`<sup>Required</sup> <a name="region" id="@cdklabs/cdk-atmosphere-client.Environment.property.region"></a>
 
 ```typescript
@@ -89,109 +192,6 @@ public readonly region: string;
 - *Type:* string
 
 Region.
-
----
-
-### EnvironmentAllocation <a name="EnvironmentAllocation" id="@cdklabs/cdk-atmosphere-client.EnvironmentAllocation"></a>
-
-An allocation of a single environment.
-
-#### Initializer <a name="Initializer" id="@cdklabs/cdk-atmosphere-client.EnvironmentAllocation.Initializer"></a>
-
-```typescript
-import { EnvironmentAllocation } from '@cdklabs/cdk-atmosphere-client'
-
-const environmentAllocation: EnvironmentAllocation = { ... }
-```
-
-#### Properties <a name="Properties" id="Properties"></a>
-
-| **Name** | **Type** | **Description** |
-| --- | --- | --- |
-| <code><a href="#@cdklabs/cdk-atmosphere-client.EnvironmentAllocation.property.allocationId">allocationId</a></code> | <code>string</code> | The allocation id. |
-| <code><a href="#@cdklabs/cdk-atmosphere-client.EnvironmentAllocation.property.environment">environment</a></code> | <code><a href="#@cdklabs/cdk-atmosphere-client.Environment">Environment</a></code> | The allocated environment. |
-
----
-
-##### `allocationId`<sup>Required</sup> <a name="allocationId" id="@cdklabs/cdk-atmosphere-client.EnvironmentAllocation.property.allocationId"></a>
-
-```typescript
-public readonly allocationId: string;
-```
-
-- *Type:* string
-
-The allocation id.
-
----
-
-##### `environment`<sup>Required</sup> <a name="environment" id="@cdklabs/cdk-atmosphere-client.EnvironmentAllocation.property.environment"></a>
-
-```typescript
-public readonly environment: Environment;
-```
-
-- *Type:* <a href="#@cdklabs/cdk-atmosphere-client.Environment">Environment</a>
-
-The allocated environment.
-
----
-
-### EnvironmentCredentials <a name="EnvironmentCredentials" id="@cdklabs/cdk-atmosphere-client.EnvironmentCredentials"></a>
-
-Credentials for a specific environment.
-
-#### Initializer <a name="Initializer" id="@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.Initializer"></a>
-
-```typescript
-import { EnvironmentCredentials } from '@cdklabs/cdk-atmosphere-client'
-
-const environmentCredentials: EnvironmentCredentials = { ... }
-```
-
-#### Properties <a name="Properties" id="Properties"></a>
-
-| **Name** | **Type** | **Description** |
-| --- | --- | --- |
-| <code><a href="#@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.property.accessKeyId">accessKeyId</a></code> | <code>string</code> | AccessKeyId. |
-| <code><a href="#@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.property.secretAccessKey">secretAccessKey</a></code> | <code>string</code> | SecretAccessKey. |
-| <code><a href="#@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.property.sessionToken">sessionToken</a></code> | <code>string</code> | SessionToken. |
-
----
-
-##### `accessKeyId`<sup>Required</sup> <a name="accessKeyId" id="@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.property.accessKeyId"></a>
-
-```typescript
-public readonly accessKeyId: string;
-```
-
-- *Type:* string
-
-AccessKeyId.
-
----
-
-##### `secretAccessKey`<sup>Required</sup> <a name="secretAccessKey" id="@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.property.secretAccessKey"></a>
-
-```typescript
-public readonly secretAccessKey: string;
-```
-
-- *Type:* string
-
-SecretAccessKey.
-
----
-
-##### `sessionToken`<sup>Required</sup> <a name="sessionToken" id="@cdklabs/cdk-atmosphere-client.EnvironmentCredentials.property.sessionToken"></a>
-
-```typescript
-public readonly sessionToken: string;
-```
-
-- *Type:* string
-
-SessionToken.
 
 ---
 
@@ -233,7 +233,7 @@ new AtmosphereClient(endpoint: string)
 ##### `acquire` <a name="acquire" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.acquire"></a>
 
 ```typescript
-public acquire(options?: AcquireOptions): EnvironmentAllocation
+public acquire(options?: AcquireOptions): Allocation
 ```
 
 Waits until an environment could be allocated by the service.
