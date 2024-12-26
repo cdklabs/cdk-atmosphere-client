@@ -17,7 +17,33 @@ const acquireOptions: AcquireOptions = { ... }
 
 | **Name** | **Type** | **Description** |
 | --- | --- | --- |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.AcquireOptions.property.pool">pool</a></code> | <code>string</code> | Which pool to acquire an environment from. |
+| <code><a href="#@cdklabs/cdk-atmosphere-client.AcquireOptions.property.requester">requester</a></code> | <code>string</code> | Identity for the requester. |
 | <code><a href="#@cdklabs/cdk-atmosphere-client.AcquireOptions.property.timeoutMinutes">timeoutMinutes</a></code> | <code>number</code> | How many minutes to wait in case an environment is not immediately available. |
+
+---
+
+##### `pool`<sup>Required</sup> <a name="pool" id="@cdklabs/cdk-atmosphere-client.AcquireOptions.property.pool"></a>
+
+```typescript
+public readonly pool: string;
+```
+
+- *Type:* string
+
+Which pool to acquire an environment from.
+
+---
+
+##### `requester`<sup>Required</sup> <a name="requester" id="@cdklabs/cdk-atmosphere-client.AcquireOptions.property.requester"></a>
+
+```typescript
+public readonly requester: string;
+```
+
+- *Type:* string
+
+Identity for the requester.
 
 ---
 
@@ -201,6 +227,9 @@ Region.
 
 Client for the Atmosphere service.
 
+Requires AWS credentials to be available
+via standard mechanisms.
+
 #### Initializers <a name="Initializers" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.Initializer"></a>
 
 ```typescript
@@ -233,12 +262,12 @@ new AtmosphereClient(endpoint: string)
 ##### `acquire` <a name="acquire" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.acquire"></a>
 
 ```typescript
-public acquire(options?: AcquireOptions): Allocation
+public acquire(options: AcquireOptions): Allocation
 ```
 
 Waits until an environment could be allocated by the service.
 
-###### `options`<sup>Optional</sup> <a name="options" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.acquire.parameter.options"></a>
+###### `options`<sup>Required</sup> <a name="options" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.acquire.parameter.options"></a>
 
 - *Type:* <a href="#@cdklabs/cdk-atmosphere-client.AcquireOptions">AcquireOptions</a>
 
@@ -247,7 +276,7 @@ Waits until an environment could be allocated by the service.
 ##### `release` <a name="release" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.release"></a>
 
 ```typescript
-public release(allocationId: string): void
+public release(allocationId: string, outcome: string): any
 ```
 
 Release an environment based on the allocation id.
@@ -256,6 +285,12 @@ After releasing an environment,
 its provided credentials are deactivated.
 
 ###### `allocationId`<sup>Required</sup> <a name="allocationId" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.release.parameter.allocationId"></a>
+
+- *Type:* string
+
+---
+
+###### `outcome`<sup>Required</sup> <a name="outcome" id="@cdklabs/cdk-atmosphere-client.AtmosphereClient.release.parameter.outcome"></a>
 
 - *Type:* string
 

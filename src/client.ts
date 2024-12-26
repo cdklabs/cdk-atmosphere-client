@@ -1,4 +1,14 @@
-import * as https from 'https';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { AwsClient } from 'aws4fetch';
+
+/**
+ * Error coming from the service.
+ */
+class ServiceError extends Error {
+  constructor(public readonly statusCode: number, message: string, statusText?: string) {
+    super(`${statusCode} ${statusText ? `(${statusText})` : ''}: ${message}`);
+  }
+}
 
 /**
  * Credentials for a specific environment.
@@ -62,6 +72,14 @@ export interface Allocation {
 
 export interface AcquireOptions {
   /**
+   * Which pool to acquire an environment from.
+   */
+  readonly pool: string;
+  /**
+   * Identity for the requester.
+   */
+  readonly requester: string;
+  /**
    * How many minutes to wait in case an environment is not immediately available.
    *
    * @default 10
@@ -70,9 +88,12 @@ export interface AcquireOptions {
 }
 
 /**
- * Client for the Atmosphere service.
+ * Client for the Atmosphere service. Requires AWS credentials to be available
+ * via standard mechanisms.
  */
 export class AtmosphereClient {
+
+  private _aws: AwsClient | undefined;
 
   public constructor(private readonly endpoint: string) {}
 
@@ -82,7 +103,7 @@ export class AtmosphereClient {
    * @returns allocation information.
    * @throws if an environment could not be acquired within the specified timeout.
    */
-  public async acquire(options: AcquireOptions = {}): Promise<Allocation> {
+  public async acquire(options: AcquireOptions): Promise<Allocation> {
 
     const timeoutMinutes = options.timeoutMinutes ?? 10;
     const startTime = Date.now();
@@ -91,15 +112,15 @@ export class AtmosphereClient {
     let retryDelay = 1000; // start with 1 second
     const maxRetryDelay = 60000; // max 1 minute
 
-    const req: https.RequestOptions = {
-      path: '/allocations',
-      method: 'POST',
-    };
-
+    this.log(`Acquire | environment from pool '${options.pool}' (requester: '${options.requester}')`);
     while (true) {
       try {
-        const res = await this.request(req);
-        return res;
+        const acquired = await this.request('POST', '/allocations', {
+          pool: options.pool,
+          requester: options.requester,
+        });
+        this.log(`Acquire | Successfully acquired environment from pool ${options.pool} (requester: ${options.requester})`);
+        return acquired;
       } catch (error: any) {
 
         // retry if no environment is available yet.
@@ -109,6 +130,8 @@ export class AtmosphereClient {
           if (elapsed >= timeoutMs) {
             throw new Error(`Failed to acquire environment within ${timeoutMinutes} minutes`);
           }
+
+          this.log(`Acquire | Retrying due to: ${error.message}`);
 
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
@@ -124,60 +147,46 @@ export class AtmosphereClient {
    * Release an environment based on the allocation id. After releasing an environment,
    * its provided credentials are deactivated.
    */
-  public async release(allocationId: string) {
-
-    const options: https.RequestOptions = {
-      path: `/allocations/${allocationId}`,
-      method: 'DELETE',
-    };
-
-    await this.request(options);
+  public async release(allocationId: string, outcome: string) {
+    this.log(`Release | Allocation '${allocationId}' (outcome: '${outcome}')`);
+    const released = await this.request('DELETE', `/allocations/${allocationId}`, { outcome });
+    this.log(`Release | Successfully released allocation '${allocationId}' (outcome: '${outcome}')`);
+    return released;
   }
 
-  private async request(options: https.RequestOptions): Promise<any> {
-
-    const req_opts: https.RequestOptions = {
-      hostname: this.endpoint,
-      port: 443,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      ...options,
-    };
-
-    return new Promise((resolve, reject) => {
-      const req = https.request(req_opts, (res) => {
-        let data = '';
-
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        res.on('end', () => {
-
-          if (res.statusCode === 200) {
-            resolve(JSON.parse(data));
-          }
-
-          // service should include a detailed error message in the 'message' field.
-          const message = JSON.parse(data).message ?? 'Unknown error';
-          const error = new Error(`${res.statusCode} (${res.statusMessage}): ${message}`);
-
-          // so we can gracefully handle some specific http responses
-          (error as any).statusCode = res.statusCode;
-
-          reject(error);
-
-        });
-
+  private async aws(): Promise<AwsClient> {
+    if (!this._aws) {
+      const provider = fromNodeProviderChain();
+      const creds = await provider();
+      this._aws = new AwsClient({
+        accessKeyId: creds.accessKeyId,
+        secretAccessKey: creds.secretAccessKey,
+        sessionToken: creds.sessionToken,
       });
+    }
+    return this._aws;
+  }
 
-      req.on('error', (error) => {
-        reject(error);
-      });
+  private async request(method: string, path: string, body: any): Promise<any> {
 
-      req.end();
+    const aws = await this.aws();
+
+    const response = await aws.fetch(`${this.endpoint}${path}`, {
+      method,
+      body: JSON.stringify(body),
     });
+
+    const responseBody = await response.json() as any;
+
+    if (response.status === 200) {
+      return responseBody;
+    }
+
+    throw new ServiceError(response.status, responseBody.message ?? 'Unknown error', response.statusText);
+  }
+
+  private log(message: string) {
+    console.log(`[${new Date().toISOString()}] ${message}`);
   }
 
 }

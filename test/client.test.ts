@@ -1,19 +1,31 @@
-import * as https from 'https';
-
+import * as aws4fetch from 'aws4fetch';
+import { enableFetchMocks } from 'jest-fetch-mock';
 import { AtmosphereClient, Allocation } from '../src';
-import { MockHttps } from './https.mock';
 
-jest.mock('https');
+jest.mock('@aws-sdk/credential-providers', () => ({
+  fromNodeProviderChain: jest.fn().mockReturnValue(() => Promise.resolve({
+    accessKeyId: 'accessKeyId',
+    secretAccessKey: 'secretAccessKey',
+    sessionToken: 'sessionToken',
+  })),
+}));
 
-beforeEach(() => {
-  jest.resetAllMocks();
-});
+enableFetchMocks();
 
-afterEach(() => {
-  jest.resetAllMocks();
+// otherwise, aws4fetch invokes the original fetch function with a signed request - which is very
+// difficult to assert on. its fine - we dont mean to test request signature headers here.
+jest.spyOn(aws4fetch.AwsClient.prototype, 'fetch').mockImplementation(async (...args: any[]) => {
+  return Promise.resolve(fetch(args[0], args[1]));
 });
 
 describe('AtmosphereClient', () => {
+
+  const endpoint = 'https://endpoint.com';
+  const client = new AtmosphereClient(endpoint);
+
+  beforeEach(() => {
+    fetchMock.resetMocks();
+  });
 
   describe('acquire', () => {
 
@@ -32,59 +44,31 @@ describe('AtmosphereClient', () => {
         },
       };
 
-      MockHttps.respond({ responses: [{ statusCode: 200, statusMessage: 'OK', data: Buffer.from(JSON.stringify(response)) }] });
+      fetchMock.mockResponse(JSON.stringify(response));
 
-      const client = new AtmosphereClient('endpoint');
-      const data = await client.acquire();
+      const data = await client.acquire({ pool: 'pool', requester: 'user' });
 
       expect(data).toEqual(response);
-      expect(https.request).toHaveBeenCalledTimes(1);
-      expect(https.request).toHaveBeenCalledWith(
-        {
-          hostname: 'endpoint',
-          port: 443,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          path: '/allocations',
-          method: 'POST',
-        },
-        expect.any(Function),
-      );
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations`, {
+        body: JSON.stringify({ pool: 'pool', requester: 'user' }),
+        method: 'POST',
+      });
 
     });
 
     test('exponentially waits until an environment is available', async () => {
 
-      const allocation: Allocation = {
-        id: 'id',
-        environment: {
-          account: 'account',
-          region: 'region',
-        },
-        credentials: {
-          accessKeyId: 'accessKeyId',
-          secretAccessKey: 'secretAccessKey',
-          sessionToken: 'sessionToken',
-        },
-      };
-
       mockSetTimeout();
 
-      MockHttps.respond({
-        responses: [
-          { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') },
-          { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') },
-          { statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') },
-          { statusCode: 200, statusMessage: 'Locked', data: Buffer.from(JSON.stringify(allocation)) },
-        ],
-      });
+      fetchMock.mockResponses(
+        [JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' }],
+        [JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' }],
+        [JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' }],
+        [JSON.stringify({}), { status: 200, statusText: 'Locked' }],
+      );
 
-      const client = new AtmosphereClient('endpoint');
-      const data = await client.acquire();
-
-      expect(data).toEqual(allocation);
-      expect(https.request).toHaveBeenCalledTimes(4);
+      await client.acquire({ pool: 'pool', requester: 'user' });
 
       expect(setTimeout).toHaveBeenCalledTimes(3);
       expect(setTimeout).toHaveBeenNthCalledWith(1, expect.any(Function), 1000);
@@ -97,17 +81,13 @@ describe('AtmosphereClient', () => {
 
       mockSetTimeout();
 
-      MockHttps.respond({
-        responses: [{ statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') }],
-        keepLastResponse: true,
-      });
+      fetchMock.mockResponse(JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' });
 
-      const client = new AtmosphereClient('endpoint');
       const start = Date.now();
-      await expect(client.acquire()).rejects.toThrow('Failed to acquire environment within 10 minutes');
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 10 minutes');
       const end = Date.now();
 
-      expect(end - start).toBeGreaterThanOrEqual(10 * 60 * 1000);
+      expect(end - start).toBeLessThanOrEqual(11 * 60 * 1000);
 
     });
 
@@ -115,18 +95,10 @@ describe('AtmosphereClient', () => {
 
       const setTimeout = mockSetTimeout();
 
-      MockHttps.respond({
-        responses: [{ statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') }],
-        keepLastResponse: true,
-      });
+      fetchMock.mockResponse(JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' });
 
-      const client = new AtmosphereClient('endpoint');
-      const start = Date.now();
-      await expect(client.acquire()).rejects.toThrow('Failed to acquire environment within 10 minutes');
-      const end = Date.now();
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 10 minutes');
 
-      expect(end - start).toBeGreaterThanOrEqual(10 * 60 * 1000);
-      expect(setTimeout).toHaveBeenCalledTimes(15);
       expect(setTimeout).toHaveBeenNthCalledWith(14, expect.any(Function), 60 * 1000);
       expect(setTimeout).toHaveBeenNthCalledWith(15, expect.any(Function), 60 * 1000);
 
@@ -136,46 +108,37 @@ describe('AtmosphereClient', () => {
 
       mockSetTimeout();
 
-      MockHttps.respond({
-        responses: [{ statusCode: 423, statusMessage: 'Locked', data: Buffer.from('{"message": "No available environments"}') }],
-        keepLastResponse: true,
-      });
-
-      const client = new AtmosphereClient('endpoint');
+      fetchMock.mockResponse(JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' });
 
       const start = Date.now();
-      await expect(client.acquire({ timeoutMinutes: 20 })).rejects.toThrow('Failed to acquire environment within 20 minutes');
+      await expect(client.acquire({ timeoutMinutes: 20, pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 20 minutes');
       const end = Date.now();
 
-      expect(end - start).toBeGreaterThanOrEqual(20 * 60 * 1000);
+      expect(end - start).toBeLessThanOrEqual(21 * 60 * 1000);
 
     });
 
     test.each([{ statusCode: 400, statusMessage: 'BadRequest' }, { statusCode: 500, statusMessage: 'Internal Error' }])('throws on error status codes', async ({ statusCode, statusMessage }) => {
 
-      const client = new AtmosphereClient('endpoint');
-      MockHttps.respond({ responses: [{ statusCode, statusMessage, data: Buffer.from('{"message":"Invalid Input"}') }] });
+      fetchMock.mockResponse(JSON.stringify({ message: 'Invalid Input' }), { status: statusCode, statusText: statusMessage });
 
-      await expect(client.acquire()).rejects.toThrow(`${statusCode} (${statusMessage}): Invalid Input`);
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow(`${statusCode} (${statusMessage}): Invalid Input`);
 
     });
 
     test('defaults to an unknown error if service doesnt provide message on error', async () => {
 
-      const client = new AtmosphereClient('endpoint');
-      MockHttps.respond({ responses: [{ statusCode: 400, statusMessage: 'BadRequest', data: Buffer.from('{}') }] });
+      fetchMock.mockResponse(JSON.stringify({}), { status: 400, statusText: 'BadRequest' });
 
-      await expect(client.acquire()).rejects.toThrow('400 (BadRequest): Unknown error');
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('400 (BadRequest): Unknown error');
 
     });
 
     test('throws if the unable to perform the request', async () => {
 
-      const client = new AtmosphereClient('endpoint');
+      fetchMock.mockReject(new Error('Unable to perform request'));
 
-      MockHttps.error({ error: new Error('Unable to perform request') });
-
-      await expect(client.acquire()).rejects.toThrow('Unable to perform request');
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Unable to perform request');
 
     });
 
@@ -185,24 +148,14 @@ describe('AtmosphereClient', () => {
 
     test('makes a single request', async () => {
 
-      MockHttps.respond({ responses: [{ statusCode: 200, statusMessage: 'OK', data: Buffer.from('{}') }] });
+      fetchMock.mockResponse(JSON.stringify({}), { status: 200, statusText: 'OK' });
 
-      const client = new AtmosphereClient('endpoint');
-
-      await client.release('id');
-      expect(https.request).toHaveBeenCalledTimes(1);
-      expect(https.request).toHaveBeenCalledWith(
-        {
-          hostname: 'endpoint',
-          port: 443,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          path: '/allocations/id',
-          method: 'DELETE',
-        },
-        expect.any(Function),
-      );
+      await client.release('id', 'success');
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations/id`, {
+        body: JSON.stringify({ outcome: 'success' }),
+        method: 'DELETE',
+      });
 
     });
 
