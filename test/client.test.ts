@@ -28,6 +28,18 @@ describe('AtmosphereClient', () => {
     fetchMock.resetMocks();
   });
 
+  describe('constructor', () => {
+
+    test('sets crypto', () => {
+
+      (global as any).crypto = undefined;
+      new AtmosphereClient('endpoint');
+      expect((global as any).crypto).toBeDefined();
+
+    });
+
+  });
+
   describe('acquire', () => {
 
     test('returns immediately if an environment is available', async () => {
