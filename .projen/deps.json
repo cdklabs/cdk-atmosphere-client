@@ -11,7 +11,6 @@
     },
     {
       "name": "@types/node",
-      "version": "^18",
       "type": "build"
     },
     {
@@ -26,6 +25,11 @@
     },
     {
       "name": "cdklabs-projen-project-types",
+      "type": "build"
+    },
+    {
+      "name": "commit-and-tag-version",
+      "version": "^12",
       "type": "build"
     },
     {
@@ -60,29 +64,6 @@
       "type": "build"
     },
     {
-      "name": "jsii-diff",
-      "type": "build"
-    },
-    {
-      "name": "jsii-docgen",
-      "version": "^10.5.0",
-      "type": "build"
-    },
-    {
-      "name": "jsii-pacmak",
-      "type": "build"
-    },
-    {
-      "name": "jsii-rosetta",
-      "version": "~5.7",
-      "type": "build"
-    },
-    {
-      "name": "jsii",
-      "version": "~5.7",
-      "type": "build"
-    },
-    {
       "name": "projen",
       "type": "build"
     },
@@ -97,14 +78,6 @@
     {
       "name": "typescript",
       "type": "build"
-    },
-    {
-      "name": "@aws-sdk/credential-providers",
-      "type": "bundled"
-    },
-    {
-      "name": "aws4fetch",
-      "type": "bundled"
     },
     {
       "name": "@aws-sdk/credential-providers",

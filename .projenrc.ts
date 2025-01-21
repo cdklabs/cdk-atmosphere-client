@@ -1,16 +1,13 @@
-import { CdklabsJsiiProject } from 'cdklabs-projen-project-types';
+import { CdkTypeScriptProject } from 'cdklabs-projen-project-types';
 import { JsonPatch } from 'projen';
 
 const coverageThreshold = 95;
 
-const project = new CdklabsJsiiProject({
-  author: 'AWS',
-  authorAddress: 'aws-cdk-dev@amazon.com',
+const project = new CdkTypeScriptProject({
   defaultReleaseBranch: 'main',
   name: '@cdklabs/cdk-atmosphere-client',
   projenrcTs: true,
-  release: false,
-  repositoryUrl: 'https://github.com/cdklabs/cdk-atmosphere-client.git',
+  release: true,
   jestOptions: {
     jestConfig: {
       coverageThreshold: {
@@ -26,13 +23,15 @@ const project = new CdklabsJsiiProject({
     },
   },
   deps: ['aws4fetch', '@aws-sdk/credential-providers'],
-  bundledDeps: ['aws4fetch', '@aws-sdk/credential-providers'],
   devDeps: ['jest-fetch-mock'],
 
-  // deps: [],                /* Runtime dependencies of this module. */
-  // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
-  // devDeps: [],             /* Build dependencies for this module. */
-  // packageName: undefined,  /* The "name" in package.json. */
+  tsconfig: {
+    exclude: ['node_modules'],
+    compilerOptions: {
+      skipLibCheck: true,
+    },
+  },
+
 });
 
 project.package.file.patch(JsonPatch.add('/jest/randomize', true));
