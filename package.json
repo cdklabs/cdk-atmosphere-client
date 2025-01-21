@@ -44,10 +44,10 @@
     "projen": "^0.91.4",
     "ts-jest": "^29",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.723.0",
+    "@aws-sdk/credential-providers": "^3.731.1",
     "aws4fetch": "^1.0.20"
   },
   "main": "lib/index.js",
