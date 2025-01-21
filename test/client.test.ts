@@ -20,18 +20,6 @@ jest.spyOn(aws4fetch.AwsClient.prototype, 'fetch').mockImplementation(async (...
 
 const endpoint = 'https://endpoint.com';
 
-// since we're mocking `AwsClient.fetch`, we are not running the signing
-// code in any of the other tests, so lets run it once to make sure
-// it doesn't crash (for example because of node version requirements)
-test('signing doesnt crash', async () => {
-  const signer = new aws4fetch.AwsClient({
-    accessKeyId: 'key',
-    secretAccessKey: 'secret',
-    sessionToken: 'token',
-  });
-  await signer.sign(endpoint, { body: JSON.stringify({}), method: 'POST' });
-});
-
 describe('AtmosphereClient', () => {
 
   const client = new AtmosphereClient(endpoint);

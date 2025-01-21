@@ -25,8 +25,6 @@ const project = new CdklabsJsiiProject({
       ],
     },
   },
-  // aws4fetch needs the 'crypto' library, only availabe built-in in node 20.
-  minNodeVersion: '20',
   deps: ['aws4fetch', '@aws-sdk/credential-providers'],
   bundledDeps: ['aws4fetch', '@aws-sdk/credential-providers'],
   devDeps: ['jest-fetch-mock'],
