@@ -1,9 +1,9 @@
-import { CdkTypeScriptProject } from 'cdklabs-projen-project-types';
+import { CdklabsTypeScriptProject } from 'cdklabs-projen-project-types';
 import { JsonPatch } from 'projen';
 
 const coverageThreshold = 95;
 
-const project = new CdkTypeScriptProject({
+const project = new CdklabsTypeScriptProject({
   defaultReleaseBranch: 'main',
   name: '@cdklabs/cdk-atmosphere-client',
   projenrcTs: true,
