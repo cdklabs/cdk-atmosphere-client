@@ -26,7 +26,6 @@ const project = new CdklabsTypeScriptProject({
   devDeps: ['jest-fetch-mock'],
 
   tsconfig: {
-    exclude: ['node_modules'],
     compilerOptions: {
       skipLibCheck: true,
     },
