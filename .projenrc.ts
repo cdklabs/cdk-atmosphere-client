@@ -8,6 +8,7 @@ const project = new CdklabsTypeScriptProject({
   name: '@cdklabs/cdk-atmosphere-client',
   projenrcTs: true,
   release: true,
+  releaseToNpm: true,
   jestOptions: {
     jestConfig: {
       coverageThreshold: {
