@@ -7,6 +7,7 @@ const project = new CdklabsTypeScriptProject({
   defaultReleaseBranch: 'main',
   name: '@cdklabs/cdk-atmosphere-client',
   projenrcTs: true,
+  private: false,
   release: true,
   releaseToNpm: true,
   jestOptions: {
@@ -31,6 +32,8 @@ const project = new CdklabsTypeScriptProject({
       skipLibCheck: true,
     },
   },
+
+  enablePRAutoMerge: true,
 
 });
 
