@@ -33,10 +33,6 @@ const project = new CdklabsTypeScriptProject({
     },
   },
 
-  autoApproveOptions: {
-    allowedUsernames: ['cdklabs-automation'],
-    secret: 'GITHUB_TOKEN',
-  },
   enablePRAutoMerge: true,
 
 });
