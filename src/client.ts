@@ -95,7 +95,16 @@ export class AtmosphereClient {
 
   private _aws: AwsClient | undefined;
 
-  public constructor(private readonly endpoint: string) {}
+  public constructor(private readonly endpoint: string) {
+
+    // aws4fetch relies on `crypto` being available globally.
+    // looks like in node < 20, even though it is included in the runtime,
+    // it isn't defined globally, so we polyfill it.
+    if ((global as any).crypto == null) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (global as any).crypto = require('crypto');
+    }
+  }
 
   /**
    * Waits until an environment could be allocated by the service.
