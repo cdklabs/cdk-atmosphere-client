@@ -97,7 +97,7 @@ describe('AtmosphereClient', () => {
       fetchMock.mockResponse(JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' });
 
       const start = Date.now();
-      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 10 minutes');
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 600 seconds');
       const end = Date.now();
 
       expect(end - start).toBeLessThanOrEqual(11 * 60 * 1000);
@@ -110,7 +110,7 @@ describe('AtmosphereClient', () => {
 
       fetchMock.mockResponse(JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' });
 
-      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 10 minutes');
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 600 seconds');
 
       expect(setTimeout).toHaveBeenNthCalledWith(14, expect.any(Function), 60 * 1000);
       expect(setTimeout).toHaveBeenNthCalledWith(15, expect.any(Function), 60 * 1000);
@@ -124,7 +124,7 @@ describe('AtmosphereClient', () => {
       fetchMock.mockResponse(JSON.stringify({ message: 'No available environments' }), { status: 423, statusText: 'Locked' });
 
       const start = Date.now();
-      await expect(client.acquire({ timeoutMinutes: 20, pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 20 minutes');
+      await expect(client.acquire({ timeoutSeconds: 1200, pool: 'pool', requester: 'user' })).rejects.toThrow('Failed to acquire environment within 1200 seconds');
       const end = Date.now();
 
       expect(end - start).toBeLessThanOrEqual(21 * 60 * 1000);

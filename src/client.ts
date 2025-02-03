@@ -80,11 +80,11 @@ export interface AcquireOptions {
    */
   readonly requester: string;
   /**
-   * How many minutes to wait in case an environment is not immediately available.
+   * How many seconds to wait in case an environment is not immediately available.
    *
-   * @default 10
+   * @default 600
    */
-  readonly timeoutMinutes?: number;
+  readonly timeoutSeconds?: number;
 }
 
 /**
@@ -114,9 +114,9 @@ export class AtmosphereClient {
    */
   public async acquire(options: AcquireOptions): Promise<Allocation> {
 
-    const timeoutMinutes = options.timeoutMinutes ?? 10;
+    const timeoutSeconds = options.timeoutSeconds ?? 600;
     const startTime = Date.now();
-    const timeoutMs = 60 * timeoutMinutes * 1000;
+    const timeoutMs = timeoutSeconds * 1000;
 
     let retryDelay = 1000; // start with 1 second
     const maxRetryDelay = 60000; // max 1 minute
@@ -137,7 +137,7 @@ export class AtmosphereClient {
 
           const elapsed = Date.now() - startTime;
           if (elapsed >= timeoutMs) {
-            throw new Error(`Failed to acquire environment within ${timeoutMinutes} minutes`);
+            throw new Error(`Failed to acquire environment within ${timeoutSeconds} seconds`);
           }
 
           this.log(`Acquire | Retrying due to: ${error.message}`);
