@@ -4,7 +4,7 @@ import { AwsClient } from 'aws4fetch';
 /**
  * Error coming from the service.
  */
-class ServiceError extends Error {
+export class ServiceError extends Error {
   constructor(public readonly statusCode: number, message: string, statusText?: string) {
     super(`${statusCode} ${statusText ? `(${statusText})` : ''}: ${message}`);
   }
@@ -137,7 +137,7 @@ export class AtmosphereClient {
 
           const elapsed = Date.now() - startTime;
           if (elapsed >= timeoutMs) {
-            throw new Error(`Failed to acquire environment within ${timeoutSeconds} seconds`);
+            throw error;
           }
 
           this.log(`Acquire | Retrying due to: ${error.message}`);
