@@ -171,6 +171,7 @@ export class AtmosphereClient {
         accessKeyId: creds.accessKeyId,
         secretAccessKey: creds.secretAccessKey,
         sessionToken: creds.sessionToken,
+        service: 'execute-api',
       });
     }
     return this._aws;
