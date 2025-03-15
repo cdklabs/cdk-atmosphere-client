@@ -52,7 +52,7 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.758.0",
+    "@aws-sdk/credential-providers": "^3.768.0",
     "aws4fetch": "^1.0.20"
   },
   "engines": {
