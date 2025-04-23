@@ -88,6 +88,26 @@ export interface AcquireOptions {
 }
 
 /**
+ * Interface of a writable log stream
+ *
+ * This interface should be assignment-compatible with `process.stdout` and
+ * `process.stderr`, but at the same time not place too many Node implementation
+ * requirements on implementors.
+ */
+export interface IWritable {
+  write(chunk: string): void;
+}
+
+export interface AtmosphereClientOptions {
+  /**
+   * Direct logging messages to this stream if given
+   *
+   * @default - Use `console.log()`.
+   */
+  readonly logStream?: IWritable;
+}
+
+/**
  * Client for the Atmosphere service. Requires AWS credentials to be available
  * via standard mechanisms.
  */
@@ -95,7 +115,7 @@ export class AtmosphereClient {
 
   private _aws: AwsClient | undefined;
 
-  public constructor(private readonly endpoint: string) {
+  public constructor(private readonly endpoint: string, private readonly options: AtmosphereClientOptions = {}) {
 
     // aws4fetch relies on `crypto` being available globally.
     // looks like in node < 20, even though it is included in the runtime,
@@ -196,7 +216,12 @@ export class AtmosphereClient {
   }
 
   private log(message: string) {
-    console.log(`[${new Date().toISOString()}] ${message}`);
+    const line = `[${new Date().toISOString()}] ${message}`;
+    if (this.options.logStream) {
+      this.options.logStream.write(`${line}\n`);
+    } else {
+      console.log(line);
+    }
   }
 
 }

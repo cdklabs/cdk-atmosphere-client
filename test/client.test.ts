@@ -1,6 +1,6 @@
 import * as aws4fetch from 'aws4fetch';
 import { enableFetchMocks } from 'jest-fetch-mock';
-import { AtmosphereClient, Allocation } from '../src';
+import { AtmosphereClient, Allocation, IWritable } from '../src';
 
 jest.mock('@aws-sdk/credential-providers', () => ({
   fromNodeProviderChain: jest.fn().mockReturnValue(() => Promise.resolve({
@@ -172,6 +172,39 @@ describe('AtmosphereClient', () => {
 
     });
 
+  });
+});
+
+describe('AtmosphereClient with a log stream', () => {
+  let writeMock: jest.MockedFunction<IWritable['write']> = jest.fn();
+  const client = new AtmosphereClient(endpoint, {
+    logStream: {
+      write: writeMock,
+    },
+  });
+
+  beforeEach(() => {
+    fetchMock.resetMocks();
+    writeMock.mockReset();
+  });
+
+  test('writes to log stream', async () => {
+    fetchMock.mockResponse(JSON.stringify({}));
+
+    await client.acquire({ pool: 'pool', requester: 'user' });
+
+    expect(writeMock).toHaveBeenCalledWith(expect.stringMatching(/Successfully acquired/));
+  });
+
+  test('compatibility of IWritable type', () => {
+    // These are just tests of the type, not really of any code. The code below should type-check.
+    // Putting it in a `test()` is just a self-documenting way of clarifying this code.
+    new AtmosphereClient(endpoint, {
+      logStream: process.stdout,
+    });
+    new AtmosphereClient(endpoint, {
+      logStream: process.stdout,
+    });
   });
 });
 
