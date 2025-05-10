@@ -5,8 +5,8 @@ import { AwsClient } from 'aws4fetch';
  * Error coming from the service.
  */
 export class ServiceError extends Error {
-  constructor(public readonly statusCode: number, message: string, statusText?: string) {
-    super(`${statusCode} ${statusText ? `(${statusText})` : ''}: ${message}`);
+  constructor(public readonly statusCode: number, message: string, statusText: string) {
+    super(`${statusCode} (${statusText}): ${message}`);
   }
 }
 
@@ -87,6 +87,12 @@ export interface AcquireOptions {
   readonly timeoutSeconds?: number;
 }
 
+interface RequestRetryOptions {
+  timeoutSeconds: number;
+  maxDelaySeconds: number;
+  retryOnStatus?: number[];
+}
+
 /**
  * Interface of a writable log stream
  *
@@ -133,43 +139,17 @@ export class AtmosphereClient {
    * @throws if an environment could not be acquired within the specified timeout.
    */
   public async acquire(options: AcquireOptions): Promise<Allocation> {
-
-    const timeoutSeconds = options.timeoutSeconds ?? 600;
-    const startTime = Date.now();
-    const timeoutMs = timeoutSeconds * 1000;
-
-    let retryDelay = 1000; // start with 1 second
-    const maxRetryDelay = 60000; // max 1 minute
-
     this.log(`Acquire | environment from pool '${options.pool}' (requester: '${options.requester}')`);
-    while (true) {
-      try {
-        const acquired = await this.request('POST', '/allocations', {
-          pool: options.pool,
-          requester: options.requester,
-        });
-        this.log(`Acquire | Successfully acquired environment from pool ${options.pool} (requester: ${options.requester})`);
-        return acquired;
-      } catch (error: any) {
-
-        // retry if no environment is available yet.
-        if (error.statusCode === 423) {
-
-          const elapsed = Date.now() - startTime;
-          if (elapsed >= timeoutMs) {
-            throw error;
-          }
-
-          this.log(`Acquire | Retrying due to: ${error.message}`);
-
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
-          continue;
-        }
-
-        throw error;
-      }
-    }
+    const acquired = await this.request('POST', '/allocations', {
+      pool: options.pool,
+      requester: options.requester,
+    }, {
+      timeoutSeconds: options.timeoutSeconds ?? 600,
+      maxDelaySeconds: 60000,
+      retryOnStatus: [423],
+    });
+    this.log(`Acquire | Successfully acquired environment from pool ${options.pool} (requester: ${options.requester})`);
+    return acquired;
   }
 
   /**
@@ -178,7 +158,10 @@ export class AtmosphereClient {
    */
   public async release(allocationId: string, outcome: string) {
     this.log(`Release | Allocation '${allocationId}' (outcome: '${outcome}')`);
-    const released = await this.request('DELETE', `/allocations/${allocationId}`, { outcome });
+    const released = await this.request('DELETE', `/allocations/${allocationId}`, { outcome }, {
+      timeoutSeconds: 30,
+      maxDelaySeconds: 32000,
+    });
     this.log(`Release | Successfully released allocation '${allocationId}' (outcome: '${outcome}')`);
     return released;
   }
@@ -197,22 +180,46 @@ export class AtmosphereClient {
     return this._aws;
   }
 
-  private async request(method: string, path: string, body: any): Promise<any> {
+  private async request(method: string, path: string, body: any, retryOptions: RequestRetryOptions): Promise<any> {
 
     const aws = await this.aws();
 
-    const response = await aws.fetch(`${this.endpoint}${path}`, {
-      method,
-      body: JSON.stringify(body),
-    });
+    const timeoutSeconds = retryOptions.timeoutSeconds;
+    const startTime = Date.now();
+    const timeoutMs = timeoutSeconds * 1000;
 
-    const responseBody = await response.json() as any;
+    let retryDelay = 1000; // start with 1 second
+    const maxRetryDelay = retryOptions.maxDelaySeconds;
 
-    if (response.status === 200) {
-      return responseBody;
+    while (true) {
+      const response = await aws.fetch(`${this.endpoint}${path}`, {
+        method,
+        body: JSON.stringify(body),
+      });
+
+      const responseBody = await response.json() as any;
+      if (response.status === 200) {
+        return responseBody;
+      }
+
+      const retryable = [
+        // TooManyRequests (API level throttling)
+        429,
+
+        // Additional codes specific to the request.
+        ...(retryOptions.retryOnStatus ?? []),
+      ];
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= timeoutMs || !retryable.includes(response.status)) {
+        throw new ServiceError(response.status, responseBody.message ?? 'Unknown error', response.statusText);
+      }
+
+      this.log(`${response.status} | Retrying after ${retryDelay / 1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
     }
 
-    throw new ServiceError(response.status, responseBody.message ?? 'Unknown error', response.statusText);
   }
 
   private log(message: string) {
