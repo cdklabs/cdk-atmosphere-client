@@ -117,6 +117,18 @@ describe('AtmosphereClient', () => {
 
     });
 
+    test('retries on 429', async () => {
+
+      mockSetTimeout();
+
+      fetchMock.mockResponse(JSON.stringify({}), { status: 429, statusText: 'TooManyRequests' });
+
+      await expect(client.acquire({ pool: 'pool', requester: 'user' })).rejects.toThrow('429 (TooManyRequests): Unknown error');
+
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(16);
+
+    });
+
     test('respects timeout', async () => {
 
       mockSetTimeout();
@@ -159,7 +171,7 @@ describe('AtmosphereClient', () => {
 
   describe('release', () => {
 
-    test('makes a single request', async () => {
+    test('makes a single request when success', async () => {
 
       fetchMock.mockResponse(JSON.stringify({}), { status: 200, statusText: 'OK' });
 
@@ -169,6 +181,18 @@ describe('AtmosphereClient', () => {
         body: JSON.stringify({ outcome: 'success' }),
         method: 'DELETE',
       });
+
+    });
+
+    test('retries on 429', async () => {
+
+      mockSetTimeout();
+
+      fetchMock.mockResponse(JSON.stringify({}), { status: 429, statusText: 'TooManyRequests' });
+
+      await expect(client.release('id', 'success')).rejects.toThrow('429 (TooManyRequests): Unknown error');
+
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(6);
 
     });
 
