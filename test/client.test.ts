@@ -70,7 +70,7 @@ describe('AtmosphereClient', () => {
       await clientWithCreds.acquire({ pool: 'pool', requester: 'user' });
 
       expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
-      expect(await clientWithCreds.aws()).toMatchObject(customCredentials);
+      expect(await (clientWithCreds as any).aws()).toMatchObject(customCredentials);
     });
 
     test('returns immediately if an environment is available', async () => {
