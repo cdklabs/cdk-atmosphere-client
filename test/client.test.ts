@@ -42,6 +42,37 @@ describe('AtmosphereClient', () => {
 
   describe('acquire', () => {
 
+    test('uses provided credentials when available', async () => {
+
+      const customCredentials = {
+        accessKeyId: 'customAccessKey',
+        secretAccessKey: 'customSecretKey',
+        sessionToken: 'customSessionToken',
+      };
+
+      const clientWithCreds = new AtmosphereClient(endpoint, { credentials: customCredentials });
+
+      const response: Allocation = {
+        id: 'id',
+        environment: {
+          account: 'account',
+          region: 'region',
+        },
+        credentials: {
+          accessKeyId: 'accessKeyId',
+          secretAccessKey: 'secretAccessKey',
+          sessionToken: 'sessionToken',
+        },
+      };
+
+      fetchMock.mockResponse(JSON.stringify(response));
+
+      await clientWithCreds.acquire({ pool: 'pool', requester: 'user' });
+
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
+      expect(await (clientWithCreds as any).aws()).toMatchObject(customCredentials);
+    });
+
     test('returns immediately if an environment is available', async () => {
 
       const response: Allocation = {
