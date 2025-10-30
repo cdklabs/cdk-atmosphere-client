@@ -105,6 +105,12 @@ export interface AtmosphereClientOptions {
    * @default - Use `console.log()`.
    */
   readonly logStream?: IWritable;
+  /**
+   * AWS credentials to use for requests
+   *
+   * @default - Use standard AWS credential provider chain
+   */
+  readonly credentials?: Credentials;
 }
 
 /**
@@ -185,8 +191,7 @@ export class AtmosphereClient {
 
   private async aws(): Promise<AwsClient> {
     if (!this._aws) {
-      const provider = fromNodeProviderChain();
-      const creds = await provider();
+      const creds = this.options.credentials ?? await fromNodeProviderChain()();
       this._aws = new AwsClient({
         accessKeyId: creds.accessKeyId,
         secretAccessKey: creds.secretAccessKey,
