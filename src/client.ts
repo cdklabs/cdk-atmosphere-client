@@ -49,6 +49,22 @@ export interface Environment {
 }
 
 /**
+ * An allocation constraint
+ */
+export interface Constraint {
+  /**
+   * The constraint type.
+   */
+  readonly type: string;
+  /**
+   * Value qualifying the constraint.
+   * E.g. a list of regions.
+   */
+  readonly value: unknown;
+}
+
+
+/**
  * An allocation of a single environment.
  */
 export interface Allocation {
@@ -68,6 +84,10 @@ export interface Allocation {
    */
   readonly credentials: Credentials;
 
+  /**
+   * Constraints used to fullfil this allocation, if any.
+   */
+  readonly constraints?: Constraint[];
 }
 
 export interface AcquireOptions {
@@ -85,6 +105,12 @@ export interface AcquireOptions {
    * @default 600
    */
   readonly timeoutSeconds?: number;
+  /**
+   * Constraints imposed on the environment request.
+   *
+   * @default - no constraints
+   */
+  readonly constraints?: Constraint[];
 }
 
 /**
@@ -153,6 +179,7 @@ export class AtmosphereClient {
         const acquired = await this.request('POST', '/allocations', {
           pool: options.pool,
           requester: options.requester,
+          constraints: options.constraints,
         });
         this.log(`Acquire | Successfully acquired environment from pool ${options.pool} (requester: ${options.requester})`);
         return acquired;
