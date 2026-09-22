@@ -216,6 +216,28 @@ export class AtmosphereClient {
     return released;
   }
 
+  /**
+   * Access the admin endpoint of the Atmosphere service.
+   *
+   * This API requires additional permissions to the admin endpoint, which are not normally
+   * available to regular Atmosphere clients.
+   */
+  public admin(): AdminClient {
+    return {
+      listEnvironments: async (): Promise<AtmosphereEnvironment[]> => {
+        this.log(`AdminListEnvironments | Requesting list of environments`);
+        const environments = await this.request('GET', '/admin/environments');
+        return environments;
+      },
+      dangerouslyAcquireSession: async (env: AtmosphereEnvironment): Promise<Credentials> => {
+        this.log(`AdminDangerouslyAcquireSession | Requesting environment from pool '${env.pool}': ${env.account}/${env.region}`);
+        const credentials: Credentials = await this.request('POST', `/admin/dangerously-acquire-session/${encodeURIComponent(env.pool)}/${encodeURIComponent(env.account)}/${encodeURIComponent(env.region)}`, undefined);
+        this.log(`AdminDangerouslyAcquireSession | Successfully acquired environment from pool '${env.pool}': ${env.account}/${env.region}`);
+        return credentials;
+      },
+    };
+  }
+
   private async aws(): Promise<AwsClient> {
     if (!this._aws) {
       const creds = this.options.credentials ?? await fromNodeProviderChain()();
@@ -229,13 +251,18 @@ export class AtmosphereClient {
     return this._aws;
   }
 
-  private async request(method: string, path: string, body: any): Promise<any> {
-
+  private async request(method: 'GET', path: string): Promise<any>;
+  private async request(method: 'POST' | 'DELETE', path: string, body: any): Promise<any>;
+  private async request(method: string, path: string, body?: any): Promise<any> {
     const aws = await this.aws();
 
     const response = await aws.fetch(`${this.endpoint}${path}`, {
       method,
-      body: JSON.stringify(body),
+      // Fetch will throw an exception if we supply a body with 'GET'
+      body: method !== 'GET' ? JSON.stringify(body) : undefined,
+      headers: {
+        ...method !== 'GET' ? { 'Content-Type': 'application/json' } : {},
+      },
     });
 
     const responseBody = await response.json() as any;
@@ -255,5 +282,32 @@ export class AtmosphereClient {
       console.log(line);
     }
   }
+}
 
+/**
+ * The admin client interface
+ */
+export interface AdminClient {
+  /**
+   * Return a list of environments managed by the service.
+   */
+  listEnvironments(): Promise<AtmosphereEnvironment[]>;
+
+  /**
+   * Acquire a targeted session for a specific environment.
+   *
+   * In contrast to `acquire()`, this allows you to acquire a session for an environment
+   * of your choice, even one that is currently locked by an existing allocation. Because
+   * this method bypasses locks, it should be used with caution.
+   *
+   * This should *preferably* be used for read-only tasks, and if used for write
+   * operations care should be taken not to interfere with running tests.
+   */
+  dangerouslyAcquireSession(environment: AtmosphereEnvironment): Promise<Credentials>;
+}
+
+export interface AtmosphereEnvironment {
+  readonly pool: string;
+  readonly account: string;
+  readonly region: string;
 }
