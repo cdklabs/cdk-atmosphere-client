@@ -1,6 +1,6 @@
 import * as aws4fetch from 'aws4fetch';
 import { enableFetchMocks } from 'jest-fetch-mock';
-import { AtmosphereClient, Allocation, IWritable } from '../src';
+import { AtmosphereClient, Allocation, IWritable, AtmosphereEnvironment, Credentials } from '../src';
 
 jest.mock('@aws-sdk/credential-providers', () => ({
   fromNodeProviderChain: jest.fn().mockReturnValue(() => Promise.resolve({
@@ -43,7 +43,6 @@ describe('AtmosphereClient', () => {
   describe('acquire', () => {
 
     test('uses provided credentials when available', async () => {
-
       const customCredentials = {
         accessKeyId: 'customAccessKey',
         secretAccessKey: 'customSecretKey',
@@ -73,6 +72,22 @@ describe('AtmosphereClient', () => {
       expect(await (clientWithCreds as any).aws()).toMatchObject(customCredentials);
     });
 
+    test('sets content-type', async () => {
+      // GIVEN
+      const clientWithCreds = new AtmosphereClient(endpoint);
+      fetchMock.mockResponse(JSON.stringify({}));
+
+      // WHEN
+      await clientWithCreds.acquire({ pool: 'pool', requester: 'user' });
+
+      // THEN
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations`, expect.objectContaining({
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+      }));
+    });
+
     test('returns immediately if an environment is available', async () => {
 
       const response: Allocation = {
@@ -94,11 +109,10 @@ describe('AtmosphereClient', () => {
 
       expect(data).toEqual(response);
       expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
-      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations`, {
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations`, expect.objectContaining({
         body: JSON.stringify({ pool: 'pool', requester: 'user' }),
         method: 'POST',
-      });
-
+      }));
     });
 
     test('exponentially waits until an environment is available', async () => {
@@ -191,18 +205,73 @@ describe('AtmosphereClient', () => {
   describe('release', () => {
 
     test('makes a single request', async () => {
-
       fetchMock.mockResponse(JSON.stringify({}), { status: 200, statusText: 'OK' });
 
       await client.release('id', 'success');
       expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
-      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations/id`, {
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations/id`, expect.objectContaining({
         body: JSON.stringify({ outcome: 'success' }),
         method: 'DELETE',
-      });
+      }));
 
     });
 
+  });
+});
+
+describe('admin endpoint', () => {
+  const fakeCreds = {
+    accessKeyId: 'accessKeyId',
+    secretAccessKey: 'secretAccessKey',
+    sessionToken: 'sessionToken',
+  } satisfies Credentials;
+
+  test('lists environments', async () => {
+    // GIVEN
+    const envList = [
+      { pool: 'pool1', account: 'account1', region: 'region1' },
+      { pool: 'pool2', account: 'account2', region: 'region2' },
+    ] satisfies AtmosphereEnvironment[];
+
+    const client = new AtmosphereClient(endpoint);
+    fetchMock.mockResponse(JSON.stringify(envList));
+
+    // WHEN
+    const environments = await client.admin().listEnvironments();
+
+    // THEN
+    expect(environments).toEqual(envList);
+    expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/admin/environments`, expect.objectContaining({
+      method: 'GET',
+    }));
+  });
+
+  test('acquire session', async () => {
+    const client = new AtmosphereClient(endpoint);
+    fetchMock.mockResponse(JSON.stringify(fakeCreds));
+
+    // WHEN
+    const response = await client.admin().dangerouslyAcquireSession({ pool: 'po/ol', account: 'acc:ount', region: 'reg@ion' });
+
+    // THEN
+    expect(response).toEqual(fakeCreds);
+    expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/admin/dangerously-acquire-session/po%2Fol/acc%3Aount/reg%40ion`, expect.objectContaining({
+      method: 'POST',
+    }));
+  });
+
+  test('acquire session escapes arguments', async () => {
+    const client = new AtmosphereClient(endpoint);
+    fetchMock.mockResponse(JSON.stringify(fakeCreds));
+
+    // WHEN
+    const response = await client.admin().dangerouslyAcquireSession({ pool: 'pool', account: 'account', region: 'region' });
+
+    // THEN
+    expect(response).toEqual(fakeCreds);
+    expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/admin/dangerously-acquire-session/pool/account/region`, expect.objectContaining({
+      method: 'POST',
+    }));
   });
 });
 
