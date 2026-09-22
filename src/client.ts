@@ -225,7 +225,7 @@ export class AtmosphereClient {
   public admin(): AdminClient {
     return {
       listEnvironments: async (): Promise<AtmosphereEnvironment[]> => {
-        this.log(`AdminListEnvironments | Requesting list of environments`);
+        this.log('AdminListEnvironments | Requesting list of environments');
         const environments = await this.request('GET', '/admin/environments');
         return environments;
       },
