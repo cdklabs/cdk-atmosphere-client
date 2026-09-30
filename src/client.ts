@@ -27,9 +27,13 @@ export interface Credentials {
 
   /**
    * SessionToken
-   *
    */
   readonly sessionToken: string;
+
+  /**
+   * ISO 8601 formatted expiration date.
+   */
+  readonly expiration?: string;
 }
 
 /**
@@ -203,6 +207,13 @@ export class AtmosphereClient {
         throw error;
       }
     }
+  }
+
+  public async renew(allocationId: string): Promise<Allocation> {
+    this.log(`Renew | Allocation '${allocationId}'`);
+    const renewed = await this.request('POST', `/allocations/${allocationId}`, { operation: 'renew' });
+    this.log(`Renew | Successfully renewed allocation '${allocationId}'`);
+    return renewed;
   }
 
   /**
