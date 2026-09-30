@@ -202,6 +202,35 @@ describe('AtmosphereClient', () => {
 
   });
 
+  describe('renew', () => {
+
+    test('directly calls the server', async () => {
+      const response: Allocation = {
+        id: 'id',
+        environment: {
+          account: 'account',
+          region: 'region',
+        },
+        credentials: {
+          accessKeyId: 'accessKeyId',
+          secretAccessKey: 'secretAccessKey',
+          sessionToken: 'sessionToken',
+        },
+      };
+
+      fetchMock.mockResponse(JSON.stringify(response));
+
+      const data = await client.renew('id');
+
+      expect(data).toEqual(response);
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledTimes(1);
+      expect(aws4fetch.AwsClient.prototype.fetch).toHaveBeenCalledWith(`${endpoint}/allocations/id`, expect.objectContaining({
+        body: JSON.stringify({ operation: 'renew' }),
+        method: 'POST',
+      }));
+    });
+  });
+
   describe('release', () => {
 
     test('makes a single request', async () => {
